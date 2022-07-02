@@ -1,2 +1,106 @@
-$ /etc/default/grub
-GRUB_CMDLINE_LINUX_DEFAULT="quiet intel_iommu=on vfio_iommu_type1.allow_unsafe_interrupts=1 iommu=pt vfio-pci.ids=10de:11c0"
+# $ /etc/default/grub
+# GRUB_CMDLINE_LINUX_DEFAULT="quiet intel_iommu=on vfio_iommu_type1.allow_unsafe_interrupts=1 iommu=pt vfio-pci.ids=10de:11c0"
+
+インストール後
+$ssh root@ipaddress
+
+$ sudo apt-get update
+$ sudo apt-get -y install sudo
+
+ssh-keygen.exe -q -t ed25519 -C '""' -N '""' -f id_ed25519
+wsl
+ ssh-copy-id -i ~/.ssh/id_ed25519.pub root@[ip] (windowsとwslで.sshを共有していることが条件 ln -s chmod -R 600 )
+ログイン
+
+$ ssh root@192.168.0.11
+"""
+Linux Alice 5.15.30-2-pve #1 SMP PVE 5.15.30-3 (Fri, 22 Apr 2022 18:08:27 +0200) x86_64
+
+The programs included with the Debian GNU/Linux system are free software;
+the exact distribution terms for each program are described in the
+individual files in /usr/share/doc/*/copyright.
+
+Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
+permitted by applicable law.
+Last login: Sat Jul  2 14:01:16 2022 from 192.168.0.146
+root@Alice:~#
+"""
+echo "deb [arch=amd64] http://download.proxmox.com/debian/pve bullseye pve-no-subscription" > /etc/apt/sources.list.d/pve-install-repo.list
+
+nano /etc/apt/sources.list
+
+nano  nano /etc/apt/sources.list.d/pve-enterprise.list
+
+"""
+-deb https://enterprise.proxmox.com/debian/pve bullseye pve-enterprise
++#deb https://enterprise.proxmox.com/debian/pve bullseye pve-enterprise
+"""
+
+
+wget https://enterprise.proxmox.com/debian/proxmox-release-bullseye.gpg -O /etc/apt/trusted.gpg.d/proxmox-release-bullseye.gpg 
+sha512sum /etc/apt/trusted.gpg.d/proxmox-release-bullseye.gpg
+
+"""
+--2022-07-02 14:35:05--  https://enterprise.proxmox.com/debian/proxmox-release-bullseye.gpg
+Resolving enterprise.proxmox.com (enterprise.proxmox.com)... 51.79.159.216, 2402:1f00:8000:800::467
+Connecting to enterprise.proxmox.com (enterprise.proxmox.com)|51.79.159.216|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 1187 (1.2K) [application/octet-stream]
+Saving to: ‘/etc/apt/trusted.gpg.d/proxmox-release-bullseye.gpg’
+
+/etc/apt/trusted.gpg.d/proxmo 100%[=================================================>]   1.16K  --.-KB/s    in 0s
+
+2022-07-02 14:35:06 (50.4 MB/s) - ‘/etc/apt/trusted.gpg.d/proxmox-release-bullseye.gpg’ saved [1187/1187]
+
+7fb03ec8a1675723d2853b84aa4fdb49a46a3bb72b9951361488bfd19b29aab0a789a4f8c7406e71a69aabbc727c936d3549731c4659ffa1a08f44db8fdcebfa  /etc/apt/trusted.gpg.d/proxmox-release-bullseye.gpg
+"""
+
+apt update
+apt upgrade -y && apt dist-upgrade -y
+
+lsblk
+"""
+NAME               MAJ:MIN RM   SIZE RO TYPE MOUNTPOINT
+sda                  8:0    0 223.6G  0 disk
+├─sda1               8:1    0  1007K  0 part
+├─sda2               8:2    0   512M  0 part /boot/efi
+└─sda3               8:3    0 223.1G  0 part
+  ├─pve-swap       253:0    0     8G  0 lvm  [SWAP]
+  ├─pve-root       253:1    0  55.8G  0 lvm  /
+  ├─pve-data_tmeta 253:2    0   1.4G  0 lvm
+  │ └─pve-data     253:4    0 140.5G  0 lvm
+  └─pve-data_tdata 253:3    0 140.5G  0 lvm
+    └─pve-data     253:4    0 140.5G  0 lvm
+"""
+https://qiita.com/miyuki_samitani/items/ee3f93fa82d6ada1fa37
+
+lvdisplay
+"""
+--- Logical volume ---
+  LV Name                data
+  VG Name                pve
+  LV UUID                aZXTxc-0Lf2-PnEl-fO0d-5p8v-BvUz-G4OdAE
+  LV Write Access        read/write
+  LV Creation host, time proxmox, 2022-07-02 00:24:09 +0900
+  LV Pool metadata       data_tmeta
+  LV Pool data           data_tdata
+  LV Status              available
+  # open                 0
+  LV Size                140.45 GiB
+  Allocated pool data    0.00%
+  Allocated metadata     1.14%
+  Current LE             35956
+  Segments               1
+  Allocation             inherit
+  Read ahead sectors     auto
+  - currently set to     256
+  Block device           253:4
+"""
+
+lvremove /dev/pve/data
+
+lvextend -r -L 103.28G /dev/pve/root <=最終的なサイズ
+などなど
+
+ルート拡張
+
